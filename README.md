@@ -48,30 +48,29 @@ For the `cilium` subcommand, the plugin mounts the cilium container image via `c
 
 ## Install
 
-Download the binary for your platform from the [latest release](https://github.com/matmerr/kubectl-vmss/releases) or build from source:
+### Krew (recommended)
 
 ```bash
-go install github.com/matmerr/kubectl-vmss/cmd/kubectl-vmss@latest
+kubectl krew install --manifest-url=https://github.com/matmerr/kubectl-vmss/releases/latest/download/vmss.yaml
 ```
 
-Move the binary to your PATH as `kubectl-vmss` so kubectl discovers it as a plugin:
+### Binary download
+
+Download the binary for your platform from the [latest release](https://github.com/matmerr/kubectl-vmss/releases) and place it on your PATH. Any binary named `kubectl-vmss` on your PATH is auto-discovered by kubectl as a plugin.
 
 ```bash
-mv $(go env GOPATH)/bin/kubectl-vmss /usr/local/bin/kubectl-vmss
+# Example for Linux amd64
+curl -LO https://github.com/matmerr/kubectl-vmss/releases/latest/download/kubectl-vmss-linux-amd64.tar.gz
+tar xzf kubectl-vmss-linux-amd64.tar.gz
+sudo mv kubectl-vmss-linux-amd64 /usr/local/bin/kubectl-vmss
 ```
 
-### Build from Source
+### Build from source
 
 ```bash
 git clone https://github.com/matmerr/kubectl-vmss.git
 cd kubectl-vmss
 make install
-```
-
-### Docker
-
-```bash
-docker build -t kubectl-vmss .
 ```
 
 ## Commands
@@ -110,26 +109,3 @@ kubectl vmss version                             # Print version info
 | `--tail`          | `logs`, `acn logs`                          | Number of log lines to show (0 = all)      | `0` (all)             |
 | `--previous`      | `logs`                                      | Show logs from previous container instance | `false`               |
 | `-a, --all`       | `get pods`                                  | Show all containers including exited       | `false`               |
-
-## Project Structure
-
-```
-Makefile                        Build, test, install, dist targets
-cmd/kubectl-vmss/main.go        Entry point
-pkg/cmd/root.go                 Root cobra command wiring
-pkg/cmd/logs/logs.go            logs subcommand
-pkg/cmd/exec/exec.go            exec subcommand
-pkg/cmd/run/run.go              run subcommand
-pkg/cmd/get/get.go              get parent command (pods, netns)
-pkg/cmd/get/pods.go             get pods subcommand
-pkg/cmd/get/netns.go            get netns subcommand
-pkg/cmd/get/azcni.go            get azcni-logs / azcni-state (deprecated aliases)
-pkg/cmd/acn/acn.go              acn parent command
-pkg/cmd/acn/logs.go             acn logs subcommand
-pkg/cmd/acn/state.go            acn state subcommand
-pkg/cmd/cilium/cilium.go        cilium subcommand
-pkg/version/version.go          Version variables (set via ldflags)
-pkg/vmss/vmss.go                VMSS runner (kubectl/az shell-out, providerID parsing)
-pkg/vmss/vmss_test.go           Unit tests (providerID parsing, output parsing)
-test/integration/               Integration tests with mock runner
-```

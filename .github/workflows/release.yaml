@@ -1,0 +1,130 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.25"
+
+            - name: Run tests
+              run: make test
+
+            - name: Build cross-platform binaries
+              run: make dist
+
+            - name: Package archives
+              run: |
+                  cd dist
+                  for f in kubectl-vmss-*; do
+                    name="${f%.*}"          # strip .exe if present
+                    os_arch="${name#kubectl-vmss-}"
+                    os="${os_arch%-*}"
+                    arch="${os_arch#*-}"
+
+                    if [[ "$f" == *.exe ]]; then
+                      zip "${name}.zip" "$f"
+                    else
+                      chmod +x "$f"
+                      tar czf "${name}.tar.gz" "$f"
+                    fi
+                  done
+
+            - name: Generate checksums
+              run: |
+                  cd dist
+                  sha256sum *.tar.gz *.zip > checksums.txt
+
+            - name: Generate krew manifest
+              run: |
+                  TAG="${GITHUB_REF_NAME}"
+                  cd dist
+
+                  linux_amd64_sha=$(sha256sum kubectl-vmss-linux-amd64.tar.gz  | awk '{print $1}')
+                  linux_arm64_sha=$(sha256sum kubectl-vmss-linux-arm64.tar.gz  | awk '{print $1}')
+                  darwin_amd64_sha=$(sha256sum kubectl-vmss-darwin-amd64.tar.gz | awk '{print $1}')
+                  darwin_arm64_sha=$(sha256sum kubectl-vmss-darwin-arm64.tar.gz | awk '{print $1}')
+                  windows_amd64_sha=$(sha256sum kubectl-vmss-windows-amd64.zip | awk '{print $1}')
+
+                  BASE_URL="https://github.com/matmerr/kubectl-vmss/releases/download/${TAG}"
+
+                  cat > vmss.yaml <<EOF
+                  apiVersion: krew.googlecontainertools.github.com/v1alpha2
+                  kind: Plugin
+                  metadata:
+                    name: vmss
+                  spec:
+                    version: "${TAG}"
+                    homepage: https://github.com/matmerr/kubectl-vmss
+                    shortDescription: Run commands on AKS nodes via Azure VMSS run-command
+                    description: |
+                      A kubectl plugin to run commands on AKS nodes via Azure VMSS
+                      run-command invoke. Useful for inspecting nodes when the API
+                      server cannot reach them, or when pods are in CrashLoopBackOff.
+
+                      Features include container log retrieval, arbitrary command
+                      execution, pod/netns listing, Azure CNI/CNS diagnostics,
+                      and Cilium CLI passthrough.
+                    platforms:
+                      - selector:
+                          matchLabels:
+                            os: linux
+                            arch: amd64
+                        uri: "${BASE_URL}/kubectl-vmss-linux-amd64.tar.gz"
+                        sha256: "${linux_amd64_sha}"
+                        bin: kubectl-vmss
+                      - selector:
+                          matchLabels:
+                            os: linux
+                            arch: arm64
+                        uri: "${BASE_URL}/kubectl-vmss-linux-arm64.tar.gz"
+                        sha256: "${linux_arm64_sha}"
+                        bin: kubectl-vmss
+                      - selector:
+                          matchLabels:
+                            os: darwin
+                            arch: amd64
+                        uri: "${BASE_URL}/kubectl-vmss-darwin-amd64.tar.gz"
+                        sha256: "${darwin_amd64_sha}"
+                        bin: kubectl-vmss
+                      - selector:
+                          matchLabels:
+                            os: darwin
+                            arch: arm64
+                        uri: "${BASE_URL}/kubectl-vmss-darwin-arm64.tar.gz"
+                        sha256: "${darwin_arm64_sha}"
+                        bin: kubectl-vmss
+                      - selector:
+                          matchLabels:
+                            os: windows
+                            arch: amd64
+                        uri: "${BASE_URL}/kubectl-vmss-windows-amd64.zip"
+                        sha256: "${windows_amd64_sha}"
+                        bin: kubectl-vmss.exe
+                  EOF
+
+                  # Remove leading whitespace from heredoc
+                  sed -i 's/^          //' vmss.yaml
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  generate_release_notes: true
+                  files: |
+                      dist/*.tar.gz
+                      dist/*.zip
+                      dist/checksums.txt
+                      dist/vmss.yaml
