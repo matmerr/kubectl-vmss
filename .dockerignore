@@ -1,0 +1,21 @@
+# Binaries
+kubectl-vmss
+kubectl_vmss
+dist/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Docs
+README.md
+LICENSE
+
+# Docker
+Dockerfile
+.dockerignore

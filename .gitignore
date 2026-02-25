@@ -1,0 +1,23 @@
+# Binaries
+/kubectl-vmss
+/kubectl_vmss
+*.exe
+
+# Build output
+dist/
+
+# Go
+*.test
+*.out
+coverage.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
