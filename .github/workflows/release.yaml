@@ -36,10 +36,14 @@ jobs:
             arch="${os_arch#*-}"
 
             if [[ "$f" == *.exe ]]; then
-              zip "${name}.zip" "$f"
+              cp "$f" kubectl-vmss.exe
+              zip "${name}.zip" kubectl-vmss.exe
+              rm kubectl-vmss.exe
             else
-              chmod +x "$f"
-              tar czf "${name}.tar.gz" "$f"
+              cp "$f" kubectl-vmss
+              chmod +x kubectl-vmss
+              tar czf "${name}.tar.gz" kubectl-vmss
+              rm kubectl-vmss
             fi
           done
 
