@@ -116,9 +116,6 @@ jobs:
                 bin: kubectl-vmss.exe
           EOF
 
-          # Remove leading whitespace from heredoc
-          sed -i 's/^          //' vmss.yaml
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
