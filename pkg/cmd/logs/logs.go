@@ -125,5 +125,3 @@ func buildLogsScript(container string, tail int, previous bool) string {
 		filter, filter, container, tailFlag,
 	)
 }
-
-

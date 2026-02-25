@@ -315,11 +315,15 @@ func (o *getPodsOptions) Run(ctx context.Context, stdout, stderr *bytes.Buffer) 
 		return err
 	}
 
+	psFlag := ""
+	if o.all {
+		psFlag = " -a"
+	}
 	var script string
 	if o.all {
-		script = "crictl ps -a -o table"
+		script = "crictl pods -o table && echo '---' && crictl ps" + psFlag + " -o table"
 	} else {
-		script = "crictl ps -o table"
+		script = "crictl pods -o table && echo '---' && crictl ps -o table"
 	}
 
 	result, err := o.runner.RunCommand(ctx, info, script)
@@ -350,8 +354,8 @@ func TestIntegration_PodsGet(t *testing.T) {
 	if err := o.Run(context.Background(), &stdout, &stderr); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !contains(m.capturedScript, "crictl ps") {
-		t.Errorf("expected crictl ps in script, got: %s", m.capturedScript)
+	if !contains(m.capturedScript, "crictl pods") {
+		t.Errorf("expected crictl pods in script, got: %s", m.capturedScript)
 	}
 	if !contains(stdout.String(), "cilium-6jnvz") {
 		t.Errorf("expected pod name in output, got: %s", stdout.String())

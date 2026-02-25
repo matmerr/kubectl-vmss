@@ -3,6 +3,12 @@ module github.com/matmerr/kubectl-vmss
 go 1.25.0
 
 require (
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
+	k8s.io/cli-runtime v0.35.1
+)
+
+require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -28,8 +34,6 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/spf13/cobra v1.10.2 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
@@ -47,7 +51,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.35.1 // indirect
 	k8s.io/apimachinery v0.35.1 // indirect
-	k8s.io/cli-runtime v0.35.1 // indirect
 	k8s.io/client-go v0.35.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect

@@ -61,9 +61,9 @@ func (o *getPodsOptions) Run(ctx context.Context) error {
 
 	var script string
 	if o.allNs {
-		script = "crictl ps -a -o table"
+		script = "crictl pods -o table && echo '---' && crictl ps -a -o table"
 	} else {
-		script = "crictl ps -o table"
+		script = "crictl pods -o table && echo '---' && crictl ps -o table"
 	}
 
 	fmt.Fprintf(o.streams.ErrOut, "Running on %s/%s...\n", info.VMSSName, info.InstanceID)
