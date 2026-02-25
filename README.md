@@ -2,6 +2,14 @@
 
 A kubectl plugin to run commands on AKS nodes via Azure VMSS run-command.
 
+## Install
+
+### Krew (recommended)
+
+```bash
+kubectl krew install --manifest-url=https://github.com/matmerr/kubectl-vmss/releases/latest/download/vmss.yaml
+```
+
 ## Usage
 
 ```bash
@@ -23,8 +31,8 @@ kubectl vmss get po <node> -a                                  # include exited 
 kubectl vmss get netns <node>
 
 # Azure CNI / CNS diagnostics
-kubectl vmss acn logs  <node>                                  # full CNI/CNS log files
-kubectl vmss acn logs  <node> --tail 500                       # last 500 lines per file
+kubectl vmss acn logs <node>                                  # full CNI/CNS log files
+kubectl vmss acn logs <node> --tail 500                       # last 500 lines per file
 kubectl vmss acn state <node>                                  # CNI/CNS state & config files
 
 # Cilium CLI (works even in CrashLoopBackOff)
@@ -33,49 +41,56 @@ kubectl vmss cilium <pod> endpoint list
 kubectl vmss cilium <pod> version
 ```
 
-## How It Works
+## Examples
 
-1. Given a pod name, uses `kubectl` to find the node it is scheduled on.
-2. Reads the node's `spec.providerID` (e.g. `azure:///subscriptions/.../virtualMachineScaleSets/<vmss>/virtualMachines/<id>`) to extract the VMSS coordinates.
-3. Runs commands on the node via `az vmss run-command invoke`, so you can inspect the host even when the API server can't reach the node or when pods are in CrashLoopBackOff.
-
-For the `cilium` subcommand, the plugin mounts the cilium container image via `ctr`, then uses `nsenter` to run the binary inside the pod's network namespace — no running container required.
-
-## Prerequisites
-
-- `kubectl` configured with cluster access
-- `az` CLI authenticated with access to the cluster's VMSS resources
-
-## Install
-
-### Krew (recommended)
+#### Fetch container logs
 
 ```bash
-kubectl krew install --manifest-url=https://github.com/matmerr/kubectl-vmss/releases/latest/download/vmss.yaml
+$ kubectl vmss logs my-pod --tail 5
+Resolving VMSS info from node: aks-nodepool1-12345678-vmss000000
+  Subscription:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  ResourceGroup: MC_my-rg_my-cluster_eastus
+  VMSS:          aks-nodepool1-12345678-vmss
+  Instance:      0
+Running on aks-nodepool1-12345678-vmss/0...
+2026-02-25T01:00:00.000Z level=info msg="starting health check"
+2026-02-25T01:00:01.000Z level=info msg="endpoint regeneration complete"
+2026-02-25T01:00:02.000Z level=info msg="policy resolved"
+2026-02-25T01:00:03.000Z level=info msg="BPF program attached"
+2026-02-25T01:00:04.000Z level=info msg="node ready"
 ```
 
-### Binary download
-
-Download the binary for your platform from the [latest release](https://github.com/matmerr/kubectl-vmss/releases) and place it on your PATH. Any binary named `kubectl-vmss` on your PATH is auto-discovered by kubectl as a plugin.
+#### Run a command on a node
 
 ```bash
-# Example for Linux amd64
-curl -LO https://github.com/matmerr/kubectl-vmss/releases/latest/download/kubectl-vmss-linux-amd64.tar.gz
-tar xzf kubectl-vmss-linux-amd64.tar.gz
-sudo mv kubectl-vmss-linux-amd64 /usr/local/bin/kubectl-vmss
+$ kubectl vmss run aks-nodepool1-12345678-vmss000000 "uptime"
+Resolving VMSS info from node: aks-nodepool1-12345678-vmss000000
+  Subscription:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  ResourceGroup: MC_my-rg_my-cluster_eastus
+  VMSS:          aks-nodepool1-12345678-vmss
+  Instance:      0
+Running on aks-nodepool1-12345678-vmss/0...
+ 01:00:00 up 10 days,  3:00,  0 users,  load average: 0.50, 0.40, 0.35
 ```
 
-### Build from source
+#### List containers on a node
 
 ```bash
-git clone https://github.com/matmerr/kubectl-vmss.git
-cd kubectl-vmss
-make install
+$ kubectl vmss get pods aks-nodepool1-12345678-vmss000000
+Resolving VMSS info from node: aks-nodepool1-12345678-vmss000000
+  Subscription:  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  ResourceGroup: MC_my-rg_my-cluster_eastus
+  VMSS:          aks-nodepool1-12345678-vmss
+  Instance:      0
+Running on aks-nodepool1-12345678-vmss/0...
+CONTAINER           IMAGE               CREATED             STATE               NAME                  POD ID
+a1b2c3d4e5f6        quay.io/cilium...   2 hours ago         Running             cilium-agent          abcdef123456
+f6e5d4c3b2a1        mcr.microsoft...    2 hours ago         Running             azure-cns             123456abcdef
 ```
 
 ## Commands
 
-```
+```bash
 kubectl vmss logs  <pod>                         # Container logs via crictl
 kubectl vmss exec  <pod> [command]               # Run a command on the pod's node
 kubectl vmss run   <node> <command>              # Run a command on a node
@@ -109,3 +124,11 @@ kubectl vmss version                             # Print version info
 | `--tail`          | `logs`, `acn logs`                          | Number of log lines to show (0 = all)      | `0` (all)             |
 | `--previous`      | `logs`                                      | Show logs from previous container instance | `false`               |
 | `-a, --all`       | `get pods`                                  | Show all containers including exited       | `false`               |
+
+## How It Works
+
+1. Given a pod name, uses `kubectl` to find the node it is scheduled on.
+2. Reads the node's `spec.providerID` to extract the VMSS coordinates (subscription, resource group, scale set, instance ID).
+3. Runs commands on the node via `az vmss run-command invoke`, so you can inspect the host even when the API server can't reach the node or when pods are in CrashLoopBackOff.
+
+For the `cilium` subcommand, the plugin mounts the cilium container image via `ctr`, then uses `nsenter` to run the binary inside the pod's network namespace — no running container required.
